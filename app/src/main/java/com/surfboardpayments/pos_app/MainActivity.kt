@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     private var callBackMap: Map<POSViews, OnClickListeners> = mapOf(
 
         POSViews.RegisterTerminal to OnClickListeners(onClick = {
+            isTransactionInitiated = false
             CoroutineScope(Dispatchers.Main).launch {
                 registerTerminal().await().run {
                     if (this.status == "SUCCESS") {
@@ -88,8 +89,8 @@ class MainActivity : AppCompatActivity() {
                         orderId = this.data?.orderId ?: ""
 
                         addView(POSViews.StartTransaction)
-                        removeView(POSViews.CreateOrder)
                         removeView(POSViews.EnterAmount)
+                        removeView(POSViews.CreateOrder)
 
                     }
                 }
@@ -118,7 +119,7 @@ class MainActivity : AppCompatActivity() {
     private fun initialiseView() {
         val view = findViewById<LinearLayout>(binding.dynamicView.id)
         _dynamicViewsItems = DynamicViews(view, applicationContext)
-        addView(POSViews.EnterAmount)
+        addView(POSViews.RegisterTerminal)
     }
 
     private fun addView(pv: POSViews) {
@@ -132,7 +133,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerTerminal(): Deferred<CodeGenerated> {
-
         return CoroutineScope(Dispatchers.IO).async {
             return@async surfClient.makeApiCall<CodeGenerated>(
                 RouteMapClass().routeMap[SurfRoute.GenerateRegistrationCode]!!, ""
@@ -180,7 +180,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-
         // Handle the deep link when a new intent is received
         intent?.let { handleDeepLink(it) }
     }
@@ -209,10 +208,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleViewAfterTransaction() {
         removeView(POSViews.StartTransaction)
-        addView(POSViews.CreateOrder)
         addView(POSViews.EnterAmount)
-
-
+        addView(POSViews.CreateOrder)
     }
 }
 
