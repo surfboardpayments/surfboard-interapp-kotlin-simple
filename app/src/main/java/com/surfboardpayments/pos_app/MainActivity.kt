@@ -18,6 +18,7 @@ import com.surfboardpayments.pos_app.models.request_models.Tax
 import com.surfboardpayments.pos_app.models.request_models.initiateTransactionJson
 import com.surfboardpayments.pos_app.models.request_models.orderDetailJson
 import com.surfboardpayments.pos_app.services.Constants
+import com.surfboardpayments.pos_app.services.LocalStorage
 import com.surfboardpayments.pos_app.services.POSViews
 import com.surfboardpayments.pos_app.services.RouteMapClass
 import com.surfboardpayments.pos_app.services.SurfClient
@@ -37,9 +38,10 @@ class MainActivity : AppCompatActivity() {
     private var registrationCode: String = ""
     private var orderId: String = ""
     private var paymentId: String = ""
-    private var isTransactionInitiated = false
+    private lateinit var localStorage: LocalStorage
 
     init {
+
         SurfClient.initialise(
             apiUrl = "API_URL",
             apiKey = "API_KEY",
@@ -66,7 +68,6 @@ class MainActivity : AppCompatActivity() {
     private var callBackMap: Map<POSViews, OnClickListeners> = mapOf(
 
         POSViews.RegisterTerminal to OnClickListeners(onClick = {
-            isTransactionInitiated = false
             CoroutineScope(Dispatchers.Main).launch {
                 registerTerminal().await().run {
                     if (this.status == "SUCCESS") {
@@ -107,8 +108,6 @@ class MainActivity : AppCompatActivity() {
                         val transactionDLUrl: String =
                             "checkoutx://com.surfboard.checkoutx/order?appScheme=surfposapp&appNameSpace=com.surfboardpayments.pos_app&showReceipt=true"
                         switchToCheckoutX(transactionDLUrl)
-
-                        isTransactionInitiated = true
                     }
                 }
             }
@@ -117,9 +116,18 @@ class MainActivity : AppCompatActivity() {
     )
 
     private fun initialiseView() {
+        localStorage = LocalStorage(this)
         val view = findViewById<LinearLayout>(binding.dynamicView.id)
         _dynamicViewsItems = DynamicViews(view, applicationContext)
-        addView(POSViews.RegisterTerminal)
+        val terminalId = localStorage.read()
+        if (terminalId.isNotBlank()) {
+            Constants.setTerminalId(terminalId)
+            addView(POSViews.EnterAmount)
+            addView(POSViews.CreateOrder)
+        } else {
+            addView(POSViews.RegisterTerminal)
+        }
+
     }
 
     private fun addView(pv: POSViews) {
@@ -188,12 +196,13 @@ class MainActivity : AppCompatActivity() {
         if (it.action == Intent.ACTION_VIEW) {
             if (it.data != null) {
                 val uri: Uri = it.data as Uri
-                println("the uri :${uri.getQueryParameter("terminalId")} ")
-                if (uri.getQueryParameter("terminalId") != null) {
+                if (!uri.getQueryParameter("terminalId").isNullOrBlank()) {
                     Constants.setTerminalId(uri.getQueryParameter("terminalId")!!)
+                    localStorage.store(uri.getQueryParameter("terminalId")!!)
                     handleViewAfterReg()
-                } else {
-                    if (isTransactionInitiated) handleViewAfterTransaction()
+                }
+                if (!uri.getQueryParameter("transactionId").isNullOrBlank()) {
+                    handleViewAfterTransaction()
                 }
             }
         }
