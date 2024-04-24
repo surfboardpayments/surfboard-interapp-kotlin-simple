@@ -106,7 +106,7 @@ class MainActivity : AppCompatActivity() {
                         paymentId = this.data?.paymentId ?: ""
 
                         val transactionDLUrl: String =
-                            "checkoutx://com.surfboard.checkoutx/order?appScheme=surfposapp&appNameSpace=com.surfboardpayments.pos_app&showReceipt=true"
+                            "checkoutx://com.surfboard.checkoutx/transaction?appScheme=surfposapp&appNameSpace=com.surfboardpayments.pos_app&showReceipt=true&terminalId=${Constants.checkoutXterminalId}"
                         switchToCheckoutX(transactionDLUrl)
                     }
                 }
