@@ -7,6 +7,7 @@ import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.LinearLayout
 import androidx.core.view.get
+import com.google.gson.JsonObject
 import com.surfboardpayments.pos_app.databinding.ActivityMainBinding
 import com.surfboardpayments.pos_app.models.CodeGenerated
 import com.surfboardpayments.pos_app.models.OrderCreated
@@ -23,11 +24,13 @@ import com.surfboardpayments.pos_app.services.POSViews
 import com.surfboardpayments.pos_app.services.RouteMapClass
 import com.surfboardpayments.pos_app.services.SurfClient
 import com.surfboardpayments.pos_app.services.SurfRoute
+import com.surfboardpayments.pos_app.services.serializer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import java.util.Base64
 
 class MainActivity : AppCompatActivity() {
 
@@ -73,7 +76,9 @@ class MainActivity : AppCompatActivity() {
                     if (this.status == "SUCCESS") {
                         println("registration code ${this.data?.registrationCode}")
                         registrationCode = this.data?.registrationCode ?: ""
-                        switchToCheckoutX("checkoutx://com.surfboard.checkoutx/register?appScheme=surfposapp&appNameSpace=com.surfboardpayments.pos_app&registrationCode=$registrationCode")
+                        val registerDLUrl =
+                            "checkoutx://com.surfboard.checkoutx/register?registrationCode=$registrationCode&redirectUrl=${returnRedirectUrl()}"
+                        switchToCheckoutX(registerDLUrl)
                     }
                 }
             }
@@ -86,7 +91,7 @@ class MainActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.Main).launch {
                 createOrder().await().run {
                     if (this.status == "SUCCESS") {
-                        println("registration code ${this.data?.orderId}")
+                        println("orderId ${this.data?.orderId}")
                         orderId = this.data?.orderId ?: ""
 
                         addView(POSViews.StartTransaction)
@@ -102,11 +107,11 @@ class MainActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.Main).launch {
                 startTransaction().await().run {
                     if (this.status == "SUCCESS") {
-                        println("registration code ${this.data?.paymentId}")
+                        println("PaymentId ${this.data?.paymentId}")
                         paymentId = this.data?.paymentId ?: ""
 
                         val transactionDLUrl: String =
-                            "checkoutx://com.surfboard.checkoutx/transaction?appScheme=surfposapp&appNameSpace=com.surfboardpayments.pos_app&showReceipt=true&terminalId=${Constants.checkoutXterminalId}"
+                            "checkoutx://com.surfboard.checkoutx/transaction?showReceipt=true&terminalId=${Constants.checkoutXterminalId}&redirectUrl=${returnRedirectUrl()}"
                         switchToCheckoutX(transactionDLUrl)
                     }
                 }
@@ -194,20 +199,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleDeepLink(it: Intent) {
         if (it.action == Intent.ACTION_VIEW) {
+
             if (it.data != null) {
                 val uri: Uri = it.data as Uri
-                if (!uri.getQueryParameter("terminalId").isNullOrBlank()) {
-                    Constants.setTerminalId(uri.getQueryParameter("terminalId")!!)
-                    localStorage.store(uri.getQueryParameter("terminalId")!!)
-                    handleViewAfterReg()
-                }
-                if (!uri.getQueryParameter("transactionId").isNullOrBlank()) {
-                    handleViewAfterTransaction()
+                if (!uri.getQueryParameter("data").isNullOrBlank()) {
+
+                    val data = String(Base64.getUrlDecoder().decode(uri.getQueryParameter("data")))
+                    val jsonObject: JsonObject = serializer.fromJson(data, JsonObject::class.java)
+                    if (jsonObject["terminalId"] != null) {
+                        val terminalId = jsonObject["terminalId"].asString
+                        Constants.setTerminalId(terminalId!!)
+                        localStorage.store(terminalId)
+                        handleViewAfterReg()
+                    }
+                    if (jsonObject["transactionId"] != null) {
+                        handleViewAfterTransaction()
+                    }
                 }
             }
+
         }
     }
 
+    private fun returnRedirectUrl(): String {
+        val url = "surfposapp://com.surfboardpayments.pos_app/"
+        return Base64.getUrlEncoder().encodeToString(url.toByteArray())
+    }
 
     private fun handleViewAfterReg() {
         removeView(POSViews.RegisterTerminal)
