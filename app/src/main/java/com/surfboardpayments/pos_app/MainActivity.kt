@@ -3,10 +3,12 @@ package com.surfboardpayments.pos_app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.LinearLayout
 import androidx.core.view.get
+import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonObject
 import com.surfboardpayments.pos_app.databinding.ActivityMainBinding
 import com.surfboardpayments.pos_app.models.CodeGenerated
@@ -30,6 +32,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import java.security.SecureRandom
 import java.util.Base64
 
 class MainActivity : AppCompatActivity() {
@@ -75,6 +78,10 @@ class MainActivity : AppCompatActivity() {
                 registerTerminal().await().run {
                     if (this.status == "SUCCESS") {
                         println("registration code ${this.data?.registrationCode}")
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            "Generated registration code"
+                        )
                         registrationCode = this.data?.registrationCode ?: ""
                         val terminalName = "surf${SecureRandom().nextInt(999)}"
                         val dataObject = JsonObject()
@@ -84,6 +91,11 @@ class MainActivity : AppCompatActivity() {
                         val registerDLUrl =
                             "checkoutx://com.surfboard.checkout_tester/register?redirectUrl=${returnRedirectUrl()}&data=$dataAsBase64"
                         switchToCheckoutX(registerDLUrl)
+                    } else {
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            "code generation failed with error ${this.message}"
+                        )
                     }
                 }
             }
@@ -98,10 +110,19 @@ class MainActivity : AppCompatActivity() {
                     if (this.status == "SUCCESS") {
                         println("orderId ${this.data?.orderId}")
                         orderId = this.data?.orderId ?: ""
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            "order created successfully with id $orderId"
+                        )
                         addView(POSViews.StartTransaction)
                         removeView(POSViews.EnterAmount)
                         removeView(POSViews.CreateOrder)
 
+                    } else {
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            "Unable to create order with error ${this.message}"
+                        )
                     }
                 }
             }
@@ -112,6 +133,10 @@ class MainActivity : AppCompatActivity() {
                 startTransaction().await().run {
                     if (this.status == "SUCCESS") {
                         println("PaymentId ${this.data?.paymentId}")
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            "initiated payment with id $paymentId"
+                        )
                         paymentId = this.data?.paymentId ?: ""
                         val dataObject = JsonObject()
 
@@ -121,7 +146,12 @@ class MainActivity : AppCompatActivity() {
                         val transactionDLUrl: String =
                             "checkoutx://com.surfboard.checkout_tester/transaction?data=$dataAsBase64&redirectUrl=${returnRedirectUrl()}"
                         switchToCheckoutX(transactionDLUrl)
-                    } 
+                    } else {
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            "Unable to initiate transaction ${this.message}"
+                        )
+                    }
                 }
             }
 
@@ -214,6 +244,10 @@ class MainActivity : AppCompatActivity() {
 
                     val data = String(Base64.getUrlDecoder().decode(uri.getQueryParameter("data")))
                     val jsonObject: JsonObject = serializer.fromJson(data, JsonObject::class.java)
+                    makeSnack(
+                        findViewById<LinearLayout>(binding.dynamicView.id),
+                        jsonObject.get("message").asString
+                    )
                     if (jsonObject.get("terminalId") != null && !jsonObject.get("terminalId").isJsonNull) {
                         val terminalId = jsonObject.get("terminalId").asString
                         if (terminalId.isNullOrBlank()) {
@@ -239,6 +273,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun base64UrlEncoder(data: String): String {
         return Base64.getUrlEncoder().encodeToString(data.toByteArray())
+    }
+
+    private fun makeSnack(view: View, text: String) {
+        val snackBar = Snackbar.make(
+            view, text, Snackbar.LENGTH_LONG
+        )
+
+        snackBar.show()
     }
 
     private fun handleViewAfterReg() {
