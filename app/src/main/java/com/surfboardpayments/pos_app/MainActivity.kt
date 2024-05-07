@@ -76,8 +76,13 @@ class MainActivity : AppCompatActivity() {
                     if (this.status == "SUCCESS") {
                         println("registration code ${this.data?.registrationCode}")
                         registrationCode = this.data?.registrationCode ?: ""
+                        val terminalName = "surf${SecureRandom().nextInt(999)}"
+                        val dataObject = JsonObject()
+                        dataObject.addProperty("registrationCode", registrationCode)
+                        dataObject.addProperty("terminalName", terminalName)
+                        val dataAsBase64 = base64UrlEncoder(dataObject.toString())
                         val registerDLUrl =
-                            "checkoutx://com.surfboard.checkoutx/register?registrationCode=$registrationCode&redirectUrl=${returnRedirectUrl()}"
+                            "checkoutx://com.surfboard.checkout_tester/register?redirectUrl=${returnRedirectUrl()}&data=$dataAsBase64"
                         switchToCheckoutX(registerDLUrl)
                     }
                 }
@@ -93,7 +98,6 @@ class MainActivity : AppCompatActivity() {
                     if (this.status == "SUCCESS") {
                         println("orderId ${this.data?.orderId}")
                         orderId = this.data?.orderId ?: ""
-
                         addView(POSViews.StartTransaction)
                         removeView(POSViews.EnterAmount)
                         removeView(POSViews.CreateOrder)
@@ -109,11 +113,15 @@ class MainActivity : AppCompatActivity() {
                     if (this.status == "SUCCESS") {
                         println("PaymentId ${this.data?.paymentId}")
                         paymentId = this.data?.paymentId ?: ""
+                        val dataObject = JsonObject()
 
+                        dataObject.addProperty("terminalId", Constants.checkoutXterminalId)
+                        dataObject.addProperty("showReceipt", "true")
+                        val dataAsBase64 = base64UrlEncoder(dataObject.toString())
                         val transactionDLUrl: String =
-                            "checkoutx://com.surfboard.checkoutx/transaction?showReceipt=true&terminalId=${Constants.checkoutXterminalId}&redirectUrl=${returnRedirectUrl()}"
+                            "checkoutx://com.surfboard.checkout_tester/transaction?data=$dataAsBase64&redirectUrl=${returnRedirectUrl()}"
                         switchToCheckoutX(transactionDLUrl)
-                    }
+                    } 
                 }
             }
 
@@ -206,13 +214,16 @@ class MainActivity : AppCompatActivity() {
 
                     val data = String(Base64.getUrlDecoder().decode(uri.getQueryParameter("data")))
                     val jsonObject: JsonObject = serializer.fromJson(data, JsonObject::class.java)
-                    if (jsonObject["terminalId"] != null) {
-                        val terminalId = jsonObject["terminalId"].asString
-                        Constants.setTerminalId(terminalId!!)
+                    if (jsonObject.get("terminalId") != null && !jsonObject.get("terminalId").isJsonNull) {
+                        val terminalId = jsonObject.get("terminalId").asString
+                        if (terminalId.isNullOrBlank()) {
+                            return
+                        }
+                        Constants.setTerminalId(terminalId)
                         localStorage.store(terminalId)
                         handleViewAfterReg()
                     }
-                    if (jsonObject["transactionId"] != null) {
+                    if (jsonObject.get("transactionId") != null && !jsonObject.get("transactionId").isJsonNull) {
                         handleViewAfterTransaction()
                     }
                 }
@@ -222,8 +233,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun returnRedirectUrl(): String {
-        val url = "surfposapp://com.surfboardpayments.pos_app/"
-        return Base64.getUrlEncoder().encodeToString(url.toByteArray())
+        val url = "surfposapp://testcheckout/"
+        return base64UrlEncoder(url)
+    }
+
+    private fun base64UrlEncoder(data: String): String {
+        return Base64.getUrlEncoder().encodeToString(data.toByteArray())
     }
 
     private fun handleViewAfterReg() {
