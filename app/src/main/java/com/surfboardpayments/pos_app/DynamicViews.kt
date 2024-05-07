@@ -98,6 +98,9 @@ textField.inputType = InputType.TYPE_CLASS_NUMBER
             "CreateOrder"->{
                 addButton(name,viewText,id,clickListeners)
             }
+            "CancelOrder"->{
+                addButton(name,viewText,id,clickListeners)
+            }
             "EnterAmount"->{
                 addEditText(name,viewText,id)
             }

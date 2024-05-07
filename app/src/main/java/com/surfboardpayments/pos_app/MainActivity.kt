@@ -12,6 +12,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonObject
 import com.surfboardpayments.pos_app.databinding.ActivityMainBinding
 import com.surfboardpayments.pos_app.models.CodeGenerated
+import com.surfboardpayments.pos_app.models.NoData
 import com.surfboardpayments.pos_app.models.OrderCreated
 import com.surfboardpayments.pos_app.models.PaymentInitiated
 import com.surfboardpayments.pos_app.models.request_models.InitiateTransaction
@@ -110,11 +111,13 @@ class MainActivity : AppCompatActivity() {
                     if (this.status == "SUCCESS") {
                         println("orderId ${this.data?.orderId}")
                         orderId = this.data?.orderId ?: ""
+                        Constants.orderId = orderId
                         makeSnack(
                             findViewById<LinearLayout>(binding.dynamicView.id),
                             "order created successfully with id $orderId"
                         )
                         addView(POSViews.StartTransaction)
+                        addView(POSViews.CancelOrder)
                         removeView(POSViews.EnterAmount)
                         removeView(POSViews.CreateOrder)
 
@@ -155,8 +158,38 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+        }
+
+
+        ),
+        POSViews.CancelOrder to OnClickListeners(onClick = {
+            CoroutineScope(Dispatchers.Main).launch {
+                cancelOrder().await().run {
+                    if (this.status == "SUCCESS") {
+
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            this.message
+                        )
+
+                        removeView(POSViews.CancelOrder)
+                        removeView(POSViews.StartTransaction)
+                        addView(POSViews.EnterAmount)
+                        addView(POSViews.CreateOrder)
+                    } else {
+                        makeSnack(
+                            findViewById<LinearLayout>(binding.dynamicView.id),
+                            this.message
+                        )
+                    }
+                }
+            }
+
+
         }),
-    )
+
+
+        )
 
     private fun initialiseView() {
         localStorage = LocalStorage(this)
@@ -218,6 +251,15 @@ class MainActivity : AppCompatActivity() {
                 RouteMapClass().routeMap[SurfRoute.InitiatePayment]!!, initiateTransactionJson(
                     InitiateTransaction(orderId, "CARD")
                 )
+            )
+
+        }
+    }
+
+    private fun cancelOrder(): Deferred<NoData> {
+        return CoroutineScope(Dispatchers.IO).async {
+            return@async surfClient.makeApiCall<NoData>(
+                RouteMapClass().routeMap[SurfRoute.CancelOrder]!!, ""
             )
 
         }
@@ -290,6 +332,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleViewAfterTransaction() {
+        removeView(POSViews.CancelOrder)
         removeView(POSViews.StartTransaction)
         addView(POSViews.EnterAmount)
         addView(POSViews.CreateOrder)

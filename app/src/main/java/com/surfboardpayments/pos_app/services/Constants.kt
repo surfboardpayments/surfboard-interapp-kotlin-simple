@@ -5,6 +5,7 @@ class Constants() {
         var merchantId: String =""
                 var storeId: String = ""
         var checkoutXterminalId:String = ""
+        var orderId = ""
         fun setConstants(merchantId:String, storeId:String){
             this.merchantId = merchantId
             this.storeId = storeId

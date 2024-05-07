@@ -2,6 +2,7 @@ package com.surfboardpayments.pos_app.services
 
 import com.surfboardpayments.pos_app.models.CodeGenerated
 import com.surfboardpayments.pos_app.models.codeGenerated
+import com.surfboardpayments.pos_app.models.noDataResponse
 import com.surfboardpayments.pos_app.models.orderCreated
 import com.surfboardpayments.pos_app.models.paymentInitiated
 
@@ -13,7 +14,7 @@ class SurfRouteValue(
 
 enum class SurfRoute {
     CreateOrder,
- InitiatePayment, GenerateRegistrationCode,
+ InitiatePayment, GenerateRegistrationCode, CancelOrder
 }
 
 class RouteMapClass {
@@ -29,6 +30,11 @@ class RouteMapClass {
             RequestType.GET,
             "merchants/${Constants.merchantId}/stores/${Constants.storeId}/terminals/interapp",
             ::codeGenerated
+        ),
+        SurfRoute.CancelOrder to SurfRouteValue(
+            RequestType.DELETE,
+            "orders/${Constants.orderId}",
+            ::noDataResponse
         )
     )
 

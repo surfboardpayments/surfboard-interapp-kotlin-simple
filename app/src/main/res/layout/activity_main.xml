@@ -20,14 +20,13 @@
     </com.google.android.material.appbar.AppBarLayout>
 
 
-
     <LinearLayout
         android:id="@+id/dynamic_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        android:paddingTop="100dp"
+        android:paddingTop="200dp"
         android:paddingBottom="20dp"></LinearLayout>
 
 
