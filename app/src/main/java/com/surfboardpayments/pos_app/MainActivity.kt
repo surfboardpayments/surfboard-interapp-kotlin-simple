@@ -90,8 +90,9 @@ class MainActivity : AppCompatActivity() {
                         dataObject.addProperty("registrationCode", registrationCode)
                         dataObject.addProperty("terminalName", terminalName)
                         val dataAsBase64 = base64UrlEncoder(dataObject.toString())
+                        //change host to com.surfboard.checkout_tester to support surfboard tester app.
                         val registerDLUrl =
-                            "checkoutx://com.surfboard.checkout_tester/register?redirectUrl=${returnRedirectUrl()}&data=$dataAsBase64"
+                            "checkoutx://com.surfboard.checkoutx/register?redirectUrl=${returnRedirectUrl()}&data=$dataAsBase64"
                         switchToCheckoutX(registerDLUrl)
                     } else {
                         makeSnack(
@@ -147,8 +148,9 @@ class MainActivity : AppCompatActivity() {
                         dataObject.addProperty("terminalId", Constants.checkoutXterminalId)
                         dataObject.addProperty("showReceipt", "true")
                         val dataAsBase64 = base64UrlEncoder(dataObject.toString())
+                        //change host to com.surfboard.checkout_tester to support surfboard tester app.
                         val transactionDLUrl: String =
-                            "checkoutx://com.surfboard.checkout_tester/transaction?data=$dataAsBase64&redirectUrl=${returnRedirectUrl()}"
+                            "checkoutx://com.surfboard.checkoutx/transaction?data=$dataAsBase64&redirectUrl=${returnRedirectUrl()}"
                         switchToCheckoutX(transactionDLUrl)
                     } else {
                         makeSnack(
