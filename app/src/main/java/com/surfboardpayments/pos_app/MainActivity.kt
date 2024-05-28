@@ -17,6 +17,7 @@ import com.surfboardpayments.pos_app.models.OrderCreated
 import com.surfboardpayments.pos_app.models.PaymentInitiated
 import com.surfboardpayments.pos_app.models.request_models.InitiateTransaction
 import com.surfboardpayments.pos_app.models.request_models.ItemAmount
+import com.surfboardpayments.pos_app.models.request_models.LineItem
 import com.surfboardpayments.pos_app.models.request_models.OrderDetails
 import com.surfboardpayments.pos_app.models.request_models.Tax
 import com.surfboardpayments.pos_app.models.request_models.initiateTransactionJson
@@ -83,7 +84,7 @@ class MainActivity : AppCompatActivity() {
                             findViewById<LinearLayout>(binding.dynamicView.id),
                             "Generated registration code"
                         )
-                        registrationCode = this.data?.registrationCode ?: ""
+                        registrationCode = this.data?.registrationCode!!
                         val terminalName = "surf${SecureRandom().nextInt(999)}"
                         val dataObject = JsonObject()
                         dataObject.addProperty("registrationCode", registrationCode)
@@ -110,7 +111,7 @@ class MainActivity : AppCompatActivity() {
                 createOrder().await().run {
                     if (this.status == "SUCCESS") {
                         println("orderId ${this.data?.orderId}")
-                        orderId = this.data?.orderId ?: ""
+                        orderId = this.data?.orderId!!
                         Constants.orderId = orderId
                         makeSnack(
                             findViewById<LinearLayout>(binding.dynamicView.id),
@@ -140,7 +141,7 @@ class MainActivity : AppCompatActivity() {
                             findViewById<LinearLayout>(binding.dynamicView.id),
                             "initiated payment with id $paymentId"
                         )
-                        paymentId = this.data?.paymentId ?: ""
+                        paymentId = this.data?.paymentId!!
                         val dataObject = JsonObject()
 
                         dataObject.addProperty("terminalId", Constants.checkoutXterminalId)
@@ -227,17 +228,29 @@ class MainActivity : AppCompatActivity() {
     private fun createOrder(): Deferred<OrderCreated> {
         val view = binding.dynamicView.get(0) as EditText
         return CoroutineScope(Dispatchers.IO).async {
+            val amount = ItemAmount(
+                (view.text.toString().toIntOrNull() ?: 0) * 100,
+                0,
+                0,
+                (view.text.toString().toIntOrNull() ?: 0) * 100,
+                "SEK",
+                arrayListOf(Tax(25, 25, "VAT"))
+            )
             return@async surfClient.makeApiCall<OrderCreated>(
+
                 RouteMapClass().routeMap[SurfRoute.CreateOrder]!!, orderDetailJson(
                     OrderDetails(
-                        Constants.checkoutXterminalId, "purchase", arrayListOf(), ItemAmount(
-                            (view.text.toString().toIntOrNull() ?: 0) * 100,
-                            0,
-                            0,
-                            (view.text.toString().toIntOrNull() ?: 0) * 100,
-                            "SEK",
-                            arrayListOf(Tax(25, 25, "VAT"))
-                        )
+                        Constants.checkoutXterminalId,
+                        "purchase",
+                        arrayListOf(
+                            LineItem(
+                                id = "itemId001",
+                                name = "coffee",
+                                quantity = 1,
+                                itemAmount = amount
+                            )
+                        ),
+                        totalOrderAmount = amount
                     )
                 )
             )
