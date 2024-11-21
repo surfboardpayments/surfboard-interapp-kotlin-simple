@@ -52,12 +52,10 @@ class MainActivity : AppCompatActivity() {
 
         SurfClient.initialise(
             apiUrl = "API_URL",
-            apiKey = "API_KEY",
-            apiSecret = "API_SECRET",
             merchantId = "MERCHANT_ID",
-            storeId = "STORE_ID",
-            authToken = "AUTH_TOKEN"
+            storeId = "STORE_ID"
         )
+        SurfClient.setToken(authToken = "AUTH_TOKEN")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

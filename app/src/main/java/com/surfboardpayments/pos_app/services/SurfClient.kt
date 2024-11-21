@@ -19,27 +19,16 @@ class SurfClient() {
     companion object {
         private var baseUrl: String = ""
         private var _initialise: Boolean = false
-        private var _apiKey: String? = null
-        private var _apiSecret: String? = null
-        private var _authToken: String? = null
+        private var _authToken: String = ""
         /**
-         * Use the given API_URL, MERCHANT_ID, STORE_ID, API_KEY and API_SECRET
-         * Either API_KEY and API_SECRET or AUTH_TOKEN have to be given
-         *
-         * AUTH_TOKEN can be generated from surfboard API as in the Surfboard developer docs
-         * @see <a href="https://developers.surfboardpayments.com/docs/api/auth?lang=GO#Create-Token">surfboard developer docs</a>
+         * Use the given API_URL, MERCHANT_ID, STORE_ID
          */
         fun initialise(
             apiUrl: String,
-            apiSecret: String?,
-            apiKey: String?,
             merchantId: String,
             storeId: String,
-            authToken: String?
-        ){
-            if ((apiKey == null && apiSecret == null) && authToken == null) {
-                throw AssertionError("Either authToken or apiKey and apiSecret shouldn't be null")
-            }
+
+            ){
             if (apiUrl.isEmpty()) {
                 throw Error("API URL shouldn't be empty")
             }
@@ -47,13 +36,15 @@ class SurfClient() {
                 baseUrl = "$apiUrl/"
             }
 
-            _apiKey = apiKey
-            _apiSecret = apiSecret
-            _authToken = authToken
+
             Constants.setConstants(merchantId, storeId)
             _initialise = true
         }
-
+        /**
+         * Call this method to set the authToken
+         * authToken can be generated from surfboard API as in the Surfboard developer docs
+         * @see <a href="https://developers.surfboardpayments.com/docs/api/auth?lang=GO#Create-Token">surfboard developer docs</a>
+         */
         fun setToken(authToken: String) {
             println("initiated token")
             if (authToken.isEmpty()) {
@@ -72,10 +63,10 @@ class SurfClient() {
         val url: String = baseUrl + routes.route
 
         val headersBuilder: Headers.Builder = Headers.Builder()
-        if (_authToken != null) {
+        if (_authToken.isNotEmpty()) {
             headersBuilder.add("Authorization", "Bearer $_authToken")
         } else {
-            headersBuilder.add("API-KEY", _apiKey).add("API-SECRET", _apiSecret)
+            throw Error("auth token shouldn't be empty")
         }
         val headers: Headers = headersBuilder.add("Content-Type", "application/json")
             .add("MERCHANT-ID", Constants.merchantId).build()
