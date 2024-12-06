@@ -9,7 +9,7 @@ data class OrderDetails(
     var terminalId: String,
     var type: String,
     var orderLines: ArrayList<LineItem>,
-    var totalOrderAmount: ItemAmount?,
+    var totalOrderAmount: TotalOrderAmount?,
     var purchaseOrderId: String=""
 
 )

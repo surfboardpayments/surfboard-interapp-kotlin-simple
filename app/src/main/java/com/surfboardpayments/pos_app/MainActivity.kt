@@ -20,6 +20,7 @@ import com.surfboardpayments.pos_app.models.request_models.ItemAmount
 import com.surfboardpayments.pos_app.models.request_models.LineItem
 import com.surfboardpayments.pos_app.models.request_models.OrderDetails
 import com.surfboardpayments.pos_app.models.request_models.Tax
+import com.surfboardpayments.pos_app.models.request_models.TotalOrderAmount
 import com.surfboardpayments.pos_app.models.request_models.initiateTransactionJson
 import com.surfboardpayments.pos_app.models.request_models.orderDetailJson
 import com.surfboardpayments.pos_app.services.Constants
@@ -227,35 +228,52 @@ class MainActivity : AppCompatActivity() {
 
     private fun createOrder(): Deferred<OrderCreated> {
         val view = binding.dynamicView.get(0) as EditText
-        return CoroutineScope(Dispatchers.IO).async {
-            val amount = ItemAmount(
-                (view.text.toString().toIntOrNull() ?: 0) * 100,
-                0,
-                0,
-                (view.text.toString().toIntOrNull() ?: 0) * 100,
-                "SEK",
-                arrayListOf(Tax(25, 25, "VAT"))
+       val  value = view.text.toString().toIntOrNull() ?: 0;
+        if (value==0){
+            makeSnack(
+                findViewById<LinearLayout>(binding.dynamicView.id),
+                "Order amount should be greater than 0"
             )
-            return@async surfClient.makeApiCall<OrderCreated>(
-
-                RouteMapClass().routeMap[SurfRoute.CreateOrder]!!, orderDetailJson(
-                    OrderDetails(
-                        Constants.checkoutXterminalId,
-                        "purchase",
-                        arrayListOf(
-                            LineItem(
-                                id = "itemId001",
-                                name = "coffee",
-                                quantity = 1,
-                                itemAmount = amount
-                            )
-                        ),
-                        totalOrderAmount = amount
+        }else{
+            return CoroutineScope(Dispatchers.IO).async {
+                val itemAmount = ItemAmount(
+                    (view.text.toString().toIntOrNull() ?: 0) * 100,
+                    0,
+                    0,
+                    (view.text.toString().toIntOrNull() ?: 0) * 100,
+                    "SEK",
+                    arrayListOf(Tax(25, 25, "VAT"))
+                )
+                val orderLines = arrayListOf(
+                    LineItem(
+                        id = "itemId001",
+                        name = "coffee",
+                        quantity = 1,
+                        itemAmount = itemAmount
                     )
                 )
-            )
+                return@async surfClient.makeApiCall<OrderCreated>(
 
+                    RouteMapClass().routeMap[SurfRoute.CreateOrder]!!, orderDetailJson(
+                        OrderDetails(
+                            Constants.checkoutXterminalId,
+                            "purchase",
+                            orderLines = orderLines ,
+                            totalOrderAmount = TotalOrderAmount(
+                                (view.text.toString().toIntOrNull() ?: 0) * 100,
+                                0,
+                                0,
+                                (view.text.toString().toIntOrNull() ?: 0) * 100,
+                                "SEK",
+                                arrayListOf(Tax(25, 25, "VAT"))
+                            )
+                        )
+                    )
+                )
+
+            }
         }
+
     }
 
     private fun startTransaction(): Deferred<PaymentInitiated> {

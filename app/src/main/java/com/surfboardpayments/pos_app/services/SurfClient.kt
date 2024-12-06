@@ -82,11 +82,13 @@ class SurfClient() {
             RequestType.DELETE -> requestBuilder.delete().build()
         }
 
+println("request ${request.url().toString()}")
+        println(request.headers().toString())
 
         val response = client.newCall(request).execute()
         val responseBodyString = String(response.body().bytes())
         val responseBody = JSONObject(responseBodyString)
-
+println(responseBodyString)
         return routes.response(responseBody.toString()) as ResponseType
     }
 
